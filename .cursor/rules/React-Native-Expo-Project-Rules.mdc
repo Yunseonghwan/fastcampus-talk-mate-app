@@ -1,0 +1,215 @@
+🔹 프로젝트 전제
+Expo Prebuild 기반 React Native TypeScript 사용
+이 규칙은 코드 생성 및 수정 시 반드시 지켜야 하는 아키텍처 가이드라인
+
+󾠮 핵심 아키텍처 원칙
+
+기본 철학
+구조는 단순하고 확장 가능하게
+UI와 비즈니스 로직은 분리
+과한 설계 금지 (Over-engineering 금지)
+의존성 방향을 반드시 지킬 것
+Strict TypeScript 사용
+파일 위치는 항상 예측 가능하게
+
+의존성 방향 (절대 역방향 금지)
+app → hooks → utils
+components → hooks
+hooks → utils
+즉:
+app은 hooks를 사용 가능
+components는 hooks 사용 가능
+hooks는 utils 사용 가능
+❌ utils가 hooks를 import하면 안 됨
+❌ hooks가 app을 import하면 안 됨
+
+󾠯 폴더 구조 규칙 (강제)
+
+프로젝트 구조
+app/ → 라우팅 전용 (expo-router)
+components/ → 재사용 UI (Dumb Component)
+hooks/ → 비즈니스 로직
+constants/ → 테마, spacing, 환경변수
+utils/ → 순수 함수
+types/ → 공통 타입
+assets/ → 이미지, 폰트
+ios/ android/ → prebuild 생성 폴더
+
+중요한 규칙
+불필요한 폴더 생성 금지
+기능 단위 구조(feature-based) 금지 (요청 시에만)
+평평하고 예측 가능한 구조 유지
+
+󾠰 app 레이어 규칙
+
+app 폴더는 라우팅 전용
+
+허용
+route 정의
+layout wrapper
+screen 조합
+
+금지
+API 호출
+무거운 로직
+Zustand 직접 변경
+데이터 가공
+
+👉 app은 그냥 조립만 하는 레이어입니다.
+
+󾠱 components 규칙 (UI 전용)
+
+components는 순수 UI 컴포넌트
+
+허용
+UI 렌더링
+UI용 로컬 state (modal open 등)
+props 기반 동작
+
+금지
+fetch / axios
+비즈니스 로직
+복잡한 검증 로직
+TanStack Query 직접 사용
+Zustand 직접 mutation
+
+👉 components는 "멍청한 컴포넌트 (Dumb Component)" 여야 합니다.
+
+󾠲 hooks 규칙 (비즈니스 로직 레이어)
+
+hooks가 실질적인 로직 담당
+
+담당 역할
+API 호출
+비동기 처리
+navigation side effect
+Zustand interaction
+데이터 변환
+비즈니스 계산
+
+필수 규칙
+모든 API 호출은 hooks 내부에 있어야 함
+컴포넌트에서 API 직접 호출 금지
+loading, error 상태는 hook에서 관리
+즉:
+Component → Hook → API
+
+󾠳 utils 규칙
+
+utils는 완전한 순수 함수
+
+허용
+포맷팅
+파싱
+변환
+간단한 validation
+
+금지
+React import
+AsyncStorage
+fetch
+side effect
+navigation
+
+👉 절대 순수 함수만 존재해야 함
+
+󾠴 스타일링 규칙 (매우 중요)
+
+오직 React Native 기본 StyleSheet만 사용
+import { StyleSheet } from 'react-native';
+
+금지
+styled-components
+emotion
+NativeWind
+tailwind
+inline style (특히 매직넘버)
+
+추가 규칙
+스타일은 파일 하단에 정의
+spacing, color는 constants에서 가져오기
+하드코딩 숫자 반복 금지
+
+󾠵 constants 규칙
+
+중앙 집중화 대상:
+색상
+spacing
+폰트 크기
+route 상수
+환경 변수
+
+👉 반복되는 값은 절대 하드코딩하지 않음
+
+󾠶 TypeScript 규칙
+
+strict: true
+any 금지
+export 함수는 명시적 반환 타입 작성
+interface 대신 type 사용
+TS 에러 무시 금지
+
+또한 절대경로 alias 사용:
+@/components/...
+
+🔟 import 규칙
+
+항상 @/ 절대 경로 사용
+../../../ 깊은 상대 경로 금지
+import 자동 정렬
+unused import 금지
+
+󾠮󾠮 상태 관리 규칙
+
+Zustand
+글로벌 UI 상태만
+API 호출 금지
+최소한으로 유지
+
+TanStack Query
+hooks 내부에서만 사용
+component에서 직접 사용 금지
+
+󾠮󾠯 ESLint 설정 목적
+
+import 정렬 강제
+unused import 자동 감지
+any 사용 금지
+console.log 제한
+prettier와 충돌 방지
+
+👉 코드 스타일을 강제로 통일
+
+󾠮󾠰 Prettier 설정 목적
+
+작은 따옴표 사용
+세미콜론 유지
+trailing comma 허용
+print width 90
+2칸 들여쓰기
+
+󾠮󾠱 절대 금지 목록
+
+아래 중 하나라도 발생하면 아키텍처 붕괴:
+JSX 안에 비즈니스 로직
+컴포넌트에서 fetch
+any 타입
+순환 의존성
+styled-components
+tailwind
+inline 매직 넘버
+component에서 process.env 직접 사용
+
+󾠮󾠲 Cursor AI 코드 생성 규칙
+
+AI가 코드를 생성할 때 반드시:
+폴더 구조 준수
+StyleSheet만 사용
+UI는 components
+로직은 hooks
+utils는 순수 함수
+strict TypeScript
+절대 경로 import
+새로운 아키텍처 도입 금지
+과한 설계 금지
+프로덕션 수준 코드
