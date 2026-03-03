@@ -1,8 +1,19 @@
+import { router } from 'expo-router';
+import { useEffect } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { Colors } from '@/constants/theme';
+import { useSession } from '@/hooks/use-session';
 
 const LandingScreen = () => {
+  const { isInitialized, hasValidSession } = useSession();
+
+  useEffect(() => {
+    if (isInitialized && !hasValidSession) {
+      router.replace('/');
+    }
+  }, [isInitialized, hasValidSession]);
+
   return (
     <View style={styles.container}>
       <Text style={styles.title}>환영합니다</Text>

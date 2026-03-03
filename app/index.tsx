@@ -6,12 +6,18 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Colors } from "@/constants/theme";
 import { useBiometricAuth } from "@/hooks/use-biometric-auth";
-
-const SUCCESS_DISPLAY_MS = 1500;
+import { useSession } from "@/hooks/use-session";
 
 const AuthScreen = () => {
   const { authenticate, isLoading, error, isSuccess, clearError } =
     useBiometricAuth();
+  const { isInitialized, hasValidSession, refreshSession } = useSession();
+
+  useEffect(() => {
+    if (isInitialized && hasValidSession) {
+      router.replace("/landing");
+    }
+  }, [isInitialized, hasValidSession]);
 
   useEffect(() => {
     if (error) {
@@ -24,12 +30,13 @@ const AuthScreen = () => {
   useEffect(() => {
     if (!isSuccess) return;
 
-    const timer = setTimeout(() => {
+    const proceedAfterAuth = async (): Promise<void> => {
+      await refreshSession();
       router.replace("/landing");
-    }, SUCCESS_DISPLAY_MS);
+    };
 
-    return () => clearTimeout(timer);
-  }, [isSuccess]);
+    proceedAfterAuth();
+  }, [isSuccess, refreshSession]);
 
   return (
     <SafeAreaView style={styles.container}>
