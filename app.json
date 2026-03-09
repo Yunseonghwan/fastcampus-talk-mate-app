@@ -10,7 +10,12 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.seonghwanyun.talkmateapp"
+      "bundleIdentifier": "com.seonghwanyun.talkmateapp",
+      "infoPlist": {
+        "NSFaceIDUsageDescription": "This app uses Face ID to authenticate users.",
+        "NSMicrophoneUsageDescription": "AI와 대화하고 음성을 저장하기 위해 마이크 권한이 필요합니다.",
+        "NSSpeechRecognitionUsageDescription": "음성 인식을 위해 말하기 권한이 필요합니다."
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -21,9 +26,14 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
+      "usesCleartextTraffic": true,
       "permissions": [
         "android.permission.USE_BIOMETRIC",
-        "android.permission.USE_FINGERPRINT"
+        "android.permission.USE_FINGERPRINT",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.READ_MEDIA_AUDIO"
       ],
       "package": "com.seonghwanyun.talkmateapp"
     },
@@ -49,6 +59,13 @@
         "expo-local-authentication",
         {
           "faceIDPermission": "Allow $(PRODUCT_NAME) to use Face ID."
+        }
+      ],
+      "expo-build-properties",
+      [
+        "react-native-permissions",
+        {
+          "iosPermissions": ["Microphone", "SpeechRecognition"]
         }
       ]
     ],
