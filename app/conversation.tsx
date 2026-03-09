@@ -1,10 +1,54 @@
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { router } from "expo-router";
+import { useCallback, useRef } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { WebView } from "react-native-webview";
+import WebView, { type WebViewMessageEvent } from "react-native-webview";
+
+import { useAudioPermissions } from "@/hooks/use-audio-permissions";
+
+const BRIDGE_JS = `
+(function() {
+  if (!window.webkit) window.webkit = {};
+  if (!window.webkit.messageHandlers) window.webkit.messageHandlers = {};
+  window.webkit.messageHandlers.talkmateApp = {
+    postMessage: function(msg) {
+      window.ReactNativeWebView.postMessage(typeof msg === 'string' ? msg : JSON.stringify(msg));
+    }
+  };
+  true;
+})();
+`;
 
 const ConversationScreen = () => {
+  const webViewRef = useRef<WebView>(null);
+  const { requestPermission } = useAudioPermissions();
+
+  const handleConversationStart = useCallback(async () => {
+    const granted = await requestPermission();
+    if (granted) {
+      webViewRef.current?.injectJavaScript(
+        `window.dispatchEvent(new CustomEvent('nativeMessage', { detail: { type: 'permission_granted' } })); true;`,
+      );
+    }
+  }, [requestPermission]);
+
+  const handleMessage = useCallback(
+    (event: WebViewMessageEvent) => {
+      const { data } = event.nativeEvent;
+      console.log("webview -> native:", data);
+
+      switch (data) {
+        case "conversation_start":
+          handleConversationStart();
+          break;
+        default:
+          console.log("unhandled message:", data);
+      }
+    },
+    [handleConversationStart],
+  );
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
@@ -16,10 +60,13 @@ const ConversationScreen = () => {
       </View>
       <View style={{ flex: 1 }}>
         <WebView
+          ref={webViewRef}
           style={styles.webview}
           source={{ uri: "http://192.168.0.3:5173/" }}
           originWhitelist={["*"]}
           javaScriptEnabled={true}
+          injectedJavaScriptBeforeContentLoaded={BRIDGE_JS}
+          onMessage={handleMessage}
         />
       </View>
     </SafeAreaView>
