@@ -33,6 +33,10 @@ const ConversationScreen = () => {
     }
   }, [requestPermission]);
 
+  const handleConversationStop = useCallback(async () => {
+    router.back();
+  }, []);
+
   const handleMessage = useCallback(
     (event: WebViewMessageEvent) => {
       const { data } = event.nativeEvent;
@@ -41,6 +45,9 @@ const ConversationScreen = () => {
       switch (data) {
         case "conversation_start":
           handleConversationStart();
+          break;
+        case "conversation_stop":
+          handleConversationStop();
           break;
         default:
           console.log("unhandled message:", data);
