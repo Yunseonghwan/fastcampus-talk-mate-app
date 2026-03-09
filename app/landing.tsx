@@ -1,15 +1,17 @@
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { router } from "expo-router";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import MenuModal from "@/components/menu-modal";
 import { useSession } from "@/hooks/use-session";
 import { useTokenStore } from "@/stores/token-store";
 
 const LandingScreen = () => {
   const { isInitialized, hasValidSession } = useSession();
   const tokens = useTokenStore((state) => state.tokens);
+  const [menuVisible, setMenuVisible] = useState(false);
 
   useEffect(() => {
     if (isInitialized && !hasValidSession) {
@@ -35,10 +37,18 @@ const LandingScreen = () => {
           </View>
           <Text style={styles.profileName}>AI 선생님</Text>
         </View>
-        <Pressable style={styles.meatballButton}>
+        <Pressable
+          style={styles.meatballButton}
+          onPress={() => setMenuVisible(true)}
+        >
           <MaterialIcons name="more-horiz" size={24} color="#333" />
         </Pressable>
       </View>
+
+      <MenuModal
+        visible={menuVisible}
+        onClose={() => setMenuVisible(false)}
+      />
 
       {/* Token Display */}
       <View style={styles.tokenSection}>

@@ -25,6 +25,8 @@ export default function RootLayout() {
         <Stack.Screen name="landing" options={{ headerShown: false }} />
         <Stack.Screen name="conversation" options={{ headerShown: false }} />
         <Stack.Screen name="read-aloud" options={{ headerShown: false }} />
+        <Stack.Screen name="chat-history" options={{ headerShown: false }} />
+        <Stack.Screen name="token-purchase" options={{ headerShown: false }} />
       </Stack>
       <StatusBar style="auto" />
     </ThemeProvider>
