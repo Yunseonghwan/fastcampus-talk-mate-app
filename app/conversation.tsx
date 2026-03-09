@@ -1,7 +1,14 @@
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { router } from "expo-router";
 import { useCallback, useRef } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import {
+  Alert,
+  Linking,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import WebView, { type WebViewMessageEvent } from "react-native-webview";
 
@@ -29,6 +36,15 @@ const ConversationScreen = () => {
     if (granted) {
       webViewRef.current?.injectJavaScript(
         `window.dispatchEvent(new CustomEvent('nativeMessage', { detail: { type: 'permission_granted' } })); true;`,
+      );
+    } else {
+      Alert.alert(
+        "마이크 권한 필요",
+        "마이크 사용을 위해 설정에서 권한을 허용해 주세요.",
+        [
+          { text: "취소", style: "cancel" },
+          { text: "설정으로 이동", onPress: () => Linking.openSettings() },
+        ],
       );
     }
   }, [requestPermission]);
