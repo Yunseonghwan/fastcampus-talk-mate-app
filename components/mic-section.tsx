@@ -1,17 +1,21 @@
-import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import { useEffect, useRef } from 'react';
-import { Animated, StyleSheet, Text, View } from 'react-native';
+import MaterialIcons from "@expo/vector-icons/MaterialIcons";
+import { useEffect, useRef } from "react";
+import { Animated, StyleSheet, Text, View } from "react-native";
+
+import AudioLevelMeter from "@/components/audio-level-meter";
 
 type MicSectionProps = {
   isRecording?: boolean;
   label?: string;
   description?: string;
+  recorder?: { getStatus: () => { metering?: number } };
 };
 
 const MicSection = ({
   isRecording = false,
-  label = '대화시작하기',
-  description = '아래 버튼을 눌러서 AI와 대화를 시작해 보세요',
+  label = "대화시작하기",
+  description = "아래 버튼을 눌러서 AI와 대화를 시작해 보세요",
+  recorder,
 }: MicSectionProps) => {
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
@@ -43,6 +47,7 @@ const MicSection = ({
         style={[
           styles.micOuterCircle,
           isRecording && styles.micOuterCircleRecording,
+          isRecording && recorder && styles.micOuterCircleWithMeter,
           { transform: [{ scale: pulseAnim }] },
         ]}
       >
@@ -55,6 +60,11 @@ const MicSection = ({
           <MaterialIcons name="mic" size={48} color="#fff" />
         </View>
       </Animated.View>
+
+      {isRecording && recorder && (
+        <AudioLevelMeter isActive={isRecording} recorder={recorder} />
+      )}
+
       <Text style={styles.mainText}>{label}</Text>
       <Text style={styles.subText}>{description}</Text>
     </View>
@@ -63,43 +73,46 @@ const MicSection = ({
 
 const styles = StyleSheet.create({
   container: {
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   micOuterCircle: {
     width: 140,
     height: 140,
     borderRadius: 70,
-    backgroundColor: '#007AFF',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "#007AFF",
+    justifyContent: "center",
+    alignItems: "center",
     marginBottom: 32,
   },
   micOuterCircleRecording: {
-    backgroundColor: '#FF3B30',
+    backgroundColor: "#FF3B30",
+  },
+  micOuterCircleWithMeter: {
+    marginBottom: 12,
   },
   micInnerCircle: {
     width: 100,
     height: 100,
     borderRadius: 50,
-    backgroundColor: '#4A90E2',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "#4A90E2",
+    justifyContent: "center",
+    alignItems: "center",
   },
   micInnerCircleRecording: {
-    backgroundColor: '#FF6B6B',
+    backgroundColor: "#FF6B6B",
   },
   mainText: {
     fontSize: 22,
-    fontWeight: '700',
-    color: '#11181C',
-    textAlign: 'center',
+    fontWeight: "700",
+    color: "#11181C",
+    textAlign: "center",
     marginBottom: 8,
   },
   subText: {
     fontSize: 14,
-    color: '#687076',
-    textAlign: 'center',
+    color: "#687076",
+    textAlign: "center",
     lineHeight: 20,
   },
 });

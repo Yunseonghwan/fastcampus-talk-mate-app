@@ -46,7 +46,10 @@ const ConversationScreen = () => {
   const recordingStartTime = useRef<number>(0);
 
   const addRecording = useAudioStore((state) => state.addRecording);
-  const audioRecorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
+  const audioRecorder = useAudioRecorder({
+    ...RecordingPresets.HIGH_QUALITY,
+    isMeteringEnabled: true,
+  });
 
   const handleConversationStart = useCallback(async () => {
     const granted = await requestPermission();
@@ -146,6 +149,7 @@ const ConversationScreen = () => {
         <View style={styles.micOverlay} pointerEvents="box-none">
           <MicSection
             isRecording={isRecording}
+            recorder={audioRecorder}
             label={isRecording ? "대화 중..." : "대화 준비 중"}
             description={
               isRecording
