@@ -1,8 +1,7 @@
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
-import { AudioModule, RecordingPresets, useAudioRecorder } from "expo-audio";
-import { Directory, File, Paths } from "expo-file-system";
+import { RecordingPresets, useAudioRecorder } from "expo-audio";
 import { router } from "expo-router";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useRef } from "react";
 import {
   Alert,
   Linking,
@@ -16,6 +15,7 @@ import WebView, { type WebViewMessageEvent } from "react-native-webview";
 
 import MicSection from "@/components/mic-section";
 import { useAudioPermissions } from "@/hooks/use-audio-permissions";
+import { useConversation } from "@/hooks/use-conversation";
 import { useAudioStore } from "@/stores/audio-store";
 
 const BRIDGE_JS = `
@@ -31,25 +31,39 @@ const BRIDGE_JS = `
 })();
 `;
 
-const ensureRecordingsDir = () => {
-  const dir = new Directory(Paths.document, "recordings");
-  if (!dir.exists) {
-    dir.create({ intermediates: true });
-  }
-  return dir;
+const STATE_LABELS: Record<string, string> = {
+  idle: "대화 준비 중",
+  listening: "듣고 있습니다...",
+  processing: "AI 응답 생성 중...",
+  ai_speaking: "AI 말하는 중...",
+};
+
+const getDescription = (
+  state: string,
+  isConnected: boolean,
+  error: string | null,
+  currentAiText: string,
+): string => {
+  if (error) return `오류: ${error}`;
+  if (!isConnected && state === "idle") return "잠시 후 대화가 시작됩니다";
+  if (state === "listening") return "영어로 말해보세요";
+  if (state === "processing") return "잠시만 기다려 주세요";
+  if (state === "ai_speaking" && currentAiText) return currentAiText;
+  if (isConnected) return "연결됨";
+  return "연결 대기 중";
 };
 
 const ConversationScreen = () => {
   const webViewRef = useRef<WebView>(null);
   const { requestPermission } = useAudioPermissions();
-  const [isRecording, setIsRecording] = useState(false);
-  const recordingStartTime = useRef<number>(0);
+  const addConversation = useAudioStore((s) => s.addConversation);
 
-  const addRecording = useAudioStore((state) => state.addRecording);
   const audioRecorder = useAudioRecorder({
     ...RecordingPresets.HIGH_QUALITY,
     isMeteringEnabled: true,
   });
+
+  const conversation = useConversation();
 
   const handleConversationStart = useCallback(async () => {
     const granted = await requestPermission();
@@ -66,60 +80,32 @@ const ConversationScreen = () => {
     }
 
     try {
-      await AudioModule.setAudioModeAsync({
-        allowsRecording: true,
-        playsInSilentMode: true,
-      });
-
-      await audioRecorder.prepareToRecordAsync();
-      audioRecorder.record();
-      recordingStartTime.current = Date.now();
-      setIsRecording(true);
+      await conversation.start(audioRecorder);
 
       webViewRef.current?.injectJavaScript(
         `window.dispatchEvent(new CustomEvent('nativeMessage', { detail: { type: 'permission_granted' } })); true;`,
       );
     } catch (error) {
-      console.error("Recording start failed:", error);
+      console.error("Conversation start failed:", error);
     }
-  }, [requestPermission, audioRecorder]);
+  }, [requestPermission, audioRecorder, conversation]);
 
   const handleConversationStop = useCallback(async () => {
     try {
-      if (isRecording) {
-        await audioRecorder.stop();
-        setIsRecording(false);
-
-        const uri = audioRecorder.uri;
-        console.log("uri:", uri);
-        if (uri) {
-          const recordingsDir = ensureRecordingsDir();
-          const filename = `recording_${Date.now()}.m4a`;
-
-          const sourceFile = new File(uri);
-          const destFile = new File(recordingsDir, filename);
-          sourceFile.move(destFile);
-
-          const durationMs = Date.now() - recordingStartTime.current;
-          addRecording({
-            id: Date.now().toString(),
-            uri: destFile.uri,
-            timestamp: Date.now(),
-            durationMs,
-          });
-        }
+      const session = await conversation.stop();
+      if (session) {
+        addConversation(session);
       }
     } catch (error) {
-      console.error("Recording stop failed:", error);
+      console.error("Conversation stop failed:", error);
     } finally {
       router.back();
     }
-  }, [isRecording, audioRecorder, addRecording]);
+  }, [conversation, addConversation]);
 
   const handleMessage = useCallback(
     (event: WebViewMessageEvent) => {
       const { data } = event.nativeEvent;
-      console.log("webview -> native:", data);
 
       switch (data) {
         case "conversation_start":
@@ -129,10 +115,19 @@ const ConversationScreen = () => {
           handleConversationStop();
           break;
         default:
-          console.log("unhandled message:", data);
+          break;
       }
     },
     [handleConversationStart, handleConversationStop],
+  );
+
+  const isActive = conversation.state !== "idle";
+  const label = STATE_LABELS[conversation.state] ?? "대화 준비 중";
+  const description = getDescription(
+    conversation.state,
+    conversation.isConnected,
+    conversation.error,
+    conversation.currentAiText,
   );
 
   return (
@@ -148,15 +143,17 @@ const ConversationScreen = () => {
       <View style={styles.content}>
         <View style={styles.micOverlay} pointerEvents="box-none">
           <MicSection
-            isRecording={isRecording}
-            recorder={audioRecorder}
-            label={isRecording ? "대화 중..." : "대화 준비 중"}
-            description={
-              isRecording
-                ? "AI와 대화가 진행되고 있습니다"
-                : "잠시 후 대화가 시작됩니다"
-            }
+            isRecording={isActive}
+            recorder={conversation.state === "listening" ? audioRecorder : undefined}
+            label={label}
+            description={description}
           />
+
+          {conversation.isConnected && (
+            <Text style={styles.connectionText}>
+              {conversation.error ? "연결 실패" : "OpenAI 연결됨"}
+            </Text>
+          )}
         </View>
 
         <WebView
@@ -214,6 +211,11 @@ const styles = StyleSheet.create({
   },
   webview: {
     flex: 1,
+  },
+  connectionText: {
+    marginTop: 12,
+    fontSize: 12,
+    color: "#687076",
   },
 });
 

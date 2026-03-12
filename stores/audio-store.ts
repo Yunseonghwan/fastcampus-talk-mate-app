@@ -11,14 +11,37 @@ export type AudioRecording = {
   durationMs: number;
 };
 
+export type ConversationSegment = {
+  speaker: 'user' | 'ai';
+  uri: string;
+  text: string;
+  durationMs: number;
+};
+
+export type ConversationMessage = {
+  role: 'user' | 'assistant';
+  content: string;
+};
+
+export type ConversationSession = {
+  id: string;
+  segments: ConversationSegment[];
+  messages: ConversationMessage[];
+  timestamp: number;
+  totalDurationMs: number;
+};
+
 type PersistedAudioState = {
   recordings: AudioRecording[];
+  conversations: ConversationSession[];
 };
 
 type AudioState = PersistedAudioState & {
   addRecording: (recording: AudioRecording) => void;
   removeRecording: (id: string) => void;
   clearRecordings: () => void;
+  addConversation: (session: ConversationSession) => void;
+  removeConversation: (id: string) => void;
 };
 
 const secureStorage = {
@@ -33,6 +56,7 @@ export const useAudioStore = create<AudioState>()(
   persist(
     (set) => ({
       recordings: [],
+      conversations: [],
 
       addRecording: (recording) =>
         set((state) => ({
@@ -45,11 +69,24 @@ export const useAudioStore = create<AudioState>()(
         })),
 
       clearRecordings: () => set({ recordings: [] }),
+
+      addConversation: (session) =>
+        set((state) => ({
+          conversations: [session, ...state.conversations],
+        })),
+
+      removeConversation: (id) =>
+        set((state) => ({
+          conversations: state.conversations.filter((c) => c.id !== id),
+        })),
     }),
     {
       name: AUDIO_STORAGE_KEY,
       storage: createJSONStorage<PersistedAudioState>(() => secureStorage),
-      partialize: (state) => ({ recordings: state.recordings }),
+      partialize: (state) => ({
+        recordings: state.recordings,
+        conversations: state.conversations,
+      }),
     },
   ),
 );
