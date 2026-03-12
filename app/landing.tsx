@@ -5,6 +5,8 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import MenuModal from "@/components/menu-modal";
+
+import MicSection from "@/components/mic-section";
 import { useSession } from "@/hooks/use-session";
 import { useTokenStore } from "@/stores/token-store";
 
@@ -45,10 +47,7 @@ const LandingScreen = () => {
         </Pressable>
       </View>
 
-      <MenuModal
-        visible={menuVisible}
-        onClose={() => setMenuVisible(false)}
-      />
+      <MenuModal visible={menuVisible} onClose={() => setMenuVisible(false)} />
 
       {/* Token Display */}
       <View style={styles.tokenSection}>
@@ -58,15 +57,7 @@ const LandingScreen = () => {
 
       {/* Center Content */}
       <View style={styles.centerContent}>
-        <View style={styles.micOuterCircle}>
-          <View style={styles.micInnerCircle}>
-            <MaterialIcons name="mic" size={48} color="#fff" />
-          </View>
-        </View>
-        <Text style={styles.mainText}>대화시작하기</Text>
-        <Text style={styles.subText}>
-          아래 버튼을 눌러서 AI와 대화를 시작해 보세요
-        </Text>
+        <MicSection />
       </View>
 
       {/* Bottom Buttons */}
@@ -145,36 +136,6 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-  },
-  micOuterCircle: {
-    width: 140,
-    height: 140,
-    borderRadius: 70,
-    backgroundColor: "#007AFF",
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 32,
-  },
-  micInnerCircle: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: "#4A90E2",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  mainText: {
-    fontSize: 22,
-    fontWeight: "700",
-    color: "#11181C",
-    textAlign: "center",
-    marginBottom: 8,
-  },
-  subText: {
-    fontSize: 14,
-    color: "#687076",
-    textAlign: "center",
-    lineHeight: 20,
   },
   bottomButtons: {
     gap: 10,
