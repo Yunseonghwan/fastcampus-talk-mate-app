@@ -20,6 +20,8 @@ import {
   getStorageInfo,
 } from '@/utils/storage-utils';
 
+const AUTO_DELETE_AFTER_MS = 60 * 1000; // 1분
+
 const formatDate = (timestamp: number) => {
   const d = new Date(timestamp);
   const y = d.getFullYear();
@@ -48,6 +50,7 @@ type StorageState = {
 const ChatHistoryScreen = () => {
   const conversations = useAudioStore((s) => s.conversations);
   const removeConversation = useAudioStore((s) => s.removeConversation);
+  const removeRecording = useAudioStore((s) => s.removeRecording);
   const [storage, setStorage] = useState<StorageState>({
     totalBytes: 0,
     usedBytes: 0,
@@ -70,6 +73,32 @@ const ChatHistoryScreen = () => {
   useEffect(() => {
     refreshStorage();
   }, [refreshStorage, conversations]);
+
+  // 1분이 지난 대화기록/녹음 파일 자동 삭제 (화면 진입 시 실행)
+  useEffect(() => {
+    const now = Date.now();
+    const cutoff = now - AUTO_DELETE_AFTER_MS;
+    const { conversations: convs, recordings: recs } =
+      useAudioStore.getState();
+
+    const oldConvs = convs.filter((c) => c.timestamp < cutoff);
+    const oldRecs = recs.filter((r) => r.timestamp < cutoff);
+
+    oldConvs.forEach((c) => {
+      c.segments.forEach((s) => deleteFileByUri(s.uri));
+      removeConversation(c.id);
+    });
+    oldRecs.forEach((r) => {
+      deleteFileByUri(r.uri);
+      removeRecording(r.id);
+    });
+
+    if (oldConvs.length > 0 || oldRecs.length > 0) {
+      refreshStorage();
+    }
+    // 화면 마운트 시에만 실행
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const stopPlayback = useCallback(() => {
     if (playerRef.current) {
