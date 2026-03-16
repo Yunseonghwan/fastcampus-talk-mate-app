@@ -144,7 +144,9 @@ const ConversationScreen = () => {
         <View style={styles.micOverlay} pointerEvents="box-none">
           <MicSection
             isRecording={isActive}
-            recorder={conversation.state === "listening" ? audioRecorder : undefined}
+            recorder={
+              conversation.state === "listening" ? audioRecorder : undefined
+            }
             label={label}
             description={description}
           />

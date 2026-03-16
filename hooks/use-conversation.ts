@@ -10,13 +10,13 @@ import {
   OPENAI_MODELS,
   SILENCE_DURATION_MS,
   SILENCE_THRESHOLD_DB,
-  TTS_VOICE,
 } from '@/constants/openai';
 import type {
   ConversationMessage,
   ConversationSegment,
   ConversationSession,
 } from '@/stores/audio-store';
+import { synthesizeSpeech } from '@/utils/synthesize-speech';
 
 type ConversationState = 'idle' | 'listening' | 'processing' | 'ai_speaking';
 
@@ -79,30 +79,6 @@ async function chatCompletion(
   return data.choices[0].message.content;
 }
 
-async function synthesizeSpeech(text: string): Promise<string> {
-  const res = await fetch(`${OPENAI_BASE_URL}/audio/speech`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${OPENAI_API_KEY}`,
-    },
-    body: JSON.stringify({
-      model: OPENAI_MODELS.tts,
-      voice: TTS_VOICE,
-      input: text,
-    }),
-  });
-
-  if (!res.ok) throw new Error(`TTS API error: ${res.status}`);
-
-  const arrayBuffer = await res.arrayBuffer();
-  const dir = ensureRecordingsDir();
-  const filename = `ai_tts_${Date.now()}.mp3`;
-  const file = new File(dir, filename);
-  file.create({ overwrite: true });
-  file.write(new Uint8Array(arrayBuffer));
-  return file.uri;
-}
 
 export type UseConversationReturn = {
   state: ConversationState;
