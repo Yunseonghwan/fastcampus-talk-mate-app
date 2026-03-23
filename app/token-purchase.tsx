@@ -2,6 +2,7 @@ import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { router } from "expo-router";
 import { useState } from "react";
 import {
+  ActivityIndicator,
   Alert,
   Dimensions,
   Pressable,
@@ -12,14 +13,11 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { useBiometricAuth } from "@/hooks/use-biometric-auth";
+import { TOKEN_AMOUNTS } from "@/constants/revenue-cat";
+import { useRevenueCat } from "@/hooks/use-revenue-cat";
 import { useTokenStore } from "@/stores/token-store";
 
-type Selection = { kind: "subscription" } | { kind: "token"; amount: number };
-
-const TOKEN_OPTIONS = [5, 10, 20, 100, 500] as const;
-const PRICE_PER_TOKEN = 10;
-const SUBSCRIPTION_PRICE = 10_000;
+const FALLBACK_PRICE_PER_TOKEN = 10;
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
 const CONTENT_PADDING = 20;
@@ -31,40 +29,38 @@ const CARD_WIDTH =
 const formatWon = (amount: number) => `₩${amount.toLocaleString()}`;
 
 const TokenPurchaseScreen = () => {
-  const [selection, setSelection] = useState<Selection | null>(null);
-  const { authenticate, isLoading } = useBiometricAuth();
-  const saveTokens = useTokenStore((s) => s.saveTokens);
-  const subscribe = useTokenStore((s) => s.subscribe);
+  const [selectedAmount, setSelectedAmount] = useState<number | null>(null);
+  const tokens = useTokenStore((s) => s.tokens);
 
-  const isSubSelected = selection?.kind === "subscription";
-  const selectedTokenAmount =
-    selection?.kind === "token" ? selection.amount : null;
+  const {
+    isLoading,
+    isPurchasing,
+    purchaseTokens,
+    restorePurchases,
+    getPackagePrice,
+  } = useRevenueCat();
 
-  const totalPrice = (() => {
-    if (!selection) return 0;
-    if (selection.kind === "subscription") return SUBSCRIPTION_PRICE;
-    return selection.amount * PRICE_PER_TOKEN;
-  })();
+  const tokenPrice = (amount: number) => {
+    return (
+      getPackagePrice(amount) ?? formatWon(amount * FALLBACK_PRICE_PER_TOKEN)
+    );
+  };
+
+  const displayPrice = selectedAmount ? tokenPrice(selectedAmount) : "";
 
   const handlePurchase = async () => {
-    if (!selection) {
-      Alert.alert("선택 필요", "구독 또는 토큰을 선택해주세요.");
+    if (!selectedAmount) {
+      Alert.alert("선택 필요", "토큰을 선택해주세요.");
       return;
     }
 
-    const success = await authenticate("결제를 위해 인증해주세요");
-    if (!success) return;
-
-    if (selection.kind === "subscription") {
-      subscribe();
-      Alert.alert("결제 완료", "연간 구독이 활성화되었습니다.", [
-        { text: "확인", onPress: () => router.replace("/landing") },
-      ]);
-    } else {
-      saveTokens(selection.amount);
-      Alert.alert("결제 완료", `${selection.amount} 토큰이 추가되었습니다.`, [
-        { text: "확인", onPress: () => router.replace("/landing") },
-      ]);
+    const success = await purchaseTokens(selectedAmount);
+    if (success) {
+      Alert.alert(
+        "결제 완료",
+        `${selectedAmount} 토큰이 추가되었습니다.`,
+        [{ text: "확인", onPress: () => router.replace("/landing") }],
+      );
     }
   };
 
@@ -76,125 +72,125 @@ const TokenPurchaseScreen = () => {
           <MaterialIcons name="arrow-back" size={24} color="#11181C" />
         </Pressable>
         <Text style={styles.title}>토큰 구매</Text>
-        <View style={styles.placeholder} />
+        <Pressable
+          onPress={restorePurchases}
+          style={styles.restoreButton}
+          disabled={isLoading}
+        >
+          <Text style={styles.restoreText}>복원</Text>
+        </Pressable>
       </View>
 
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Annual Subscription */}
-        <Pressable
-          style={[styles.subBox, isSubSelected && styles.selectedBox]}
-          onPress={() => setSelection({ kind: "subscription" })}
-        >
-          <View style={styles.subBadge}>
-            <MaterialIcons name="workspace-premium" size={16} color="#fff" />
-            <Text style={styles.subBadgeText}>BEST</Text>
-          </View>
-
-          <View style={styles.subHeader}>
-            <MaterialIcons
-              name="star"
-              size={28}
-              color={isSubSelected ? "#007AFF" : "#FFB800"}
-            />
-            <Text
-              style={[styles.subTitle, isSubSelected && styles.selectedText]}
-            >
-              연간 구독
-            </Text>
-          </View>
-
-          <Text style={styles.subDesc}>모든 기능을 무제한으로 이용하세요</Text>
-
-          <View style={styles.subPriceRow}>
-            <Text
-              style={[styles.subPrice, isSubSelected && styles.selectedText]}
-            >
-              {formatWon(SUBSCRIPTION_PRICE)}
-            </Text>
-            <Text style={styles.subPeriod}> / 년</Text>
-          </View>
-
-          {isSubSelected && (
-            <View style={styles.checkBadge}>
-              <MaterialIcons name="check-circle" size={24} color="#007AFF" />
-            </View>
-          )}
-        </Pressable>
-
-        {/* Token Section */}
-        <Text style={styles.sectionLabel}>토큰 구매</Text>
-        <Text style={styles.sectionHint}>1토큰 = ₩10</Text>
-
-        <View style={styles.tokenGrid}>
-          {TOKEN_OPTIONS.map((amount) => {
-            const isSelected = selectedTokenAmount === amount;
-            return (
-              <Pressable
-                key={amount}
-                style={[styles.tokenCard, isSelected && styles.selectedBox]}
-                onPress={() => setSelection({ kind: "token", amount })}
-              >
-                {isSelected && (
-                  <View style={styles.tokenCheck}>
-                    <MaterialIcons
-                      name="check-circle"
-                      size={18}
-                      color="#007AFF"
-                    />
-                  </View>
-                )}
-                <MaterialIcons
-                  name="toll"
-                  size={26}
-                  color={isSelected ? "#007AFF" : "#687076"}
-                />
-                <Text
-                  style={[
-                    styles.tokenAmount,
-                    isSelected && styles.selectedText,
-                  ]}
-                >
-                  {amount}
-                </Text>
-                <Text style={styles.tokenUnit}>토큰</Text>
-                <Text
-                  style={[styles.tokenPrice, isSelected && styles.selectedText]}
-                >
-                  {formatWon(amount * PRICE_PER_TOKEN)}
-                </Text>
-              </Pressable>
-            );
-          })}
+      {isLoading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#007AFF" />
+          <Text style={styles.loadingText}>상품 정보를 불러오는 중...</Text>
         </View>
-      </ScrollView>
+      ) : (
+        <ScrollView
+          style={styles.scroll}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Current Token Balance */}
+          <View style={styles.balanceRow}>
+            <MaterialIcons name="toll" size={20} color="#007AFF" />
+            <Text style={styles.balanceText}>
+              보유 토큰:{" "}
+              <Text style={styles.balanceAmount}>{tokens}</Text>
+            </Text>
+          </View>
+
+          {/* Token Section */}
+          <Text style={styles.sectionLabel}>토큰 구매</Text>
+
+          <View style={styles.tokenGrid}>
+            {TOKEN_AMOUNTS.map((amount) => {
+              const isSelected = selectedAmount === amount;
+              return (
+                <Pressable
+                  key={amount}
+                  style={[
+                    styles.tokenCard,
+                    isSelected && styles.selectedBox,
+                  ]}
+                  onPress={() => setSelectedAmount(amount)}
+                >
+                  {isSelected && (
+                    <View style={styles.tokenCheck}>
+                      <MaterialIcons
+                        name="check-circle"
+                        size={18}
+                        color="#007AFF"
+                      />
+                    </View>
+                  )}
+                  <MaterialIcons
+                    name="toll"
+                    size={26}
+                    color={isSelected ? "#007AFF" : "#687076"}
+                  />
+                  <Text
+                    style={[
+                      styles.tokenAmount,
+                      isSelected && styles.selectedText,
+                    ]}
+                  >
+                    {amount}
+                  </Text>
+                  <Text style={styles.tokenUnit}>토큰</Text>
+                  <Text
+                    style={[
+                      styles.tokenPrice,
+                      isSelected && styles.selectedText,
+                    ]}
+                  >
+                    {tokenPrice(amount)}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+
+          {/* Sandbox Notice */}
+          <View style={styles.sandboxNotice}>
+            <MaterialIcons name="science" size={16} color="#FF9500" />
+            <Text style={styles.sandboxText}>
+              테스트 환경: Sandbox 모드로 실제 결제가 이루어지지 않습니다
+            </Text>
+          </View>
+        </ScrollView>
+      )}
 
       {/* Bottom Purchase Section */}
-      <View style={styles.bottom}>
-        {selection && (
-          <View style={styles.totalRow}>
-            <Text style={styles.totalLabel}>결제 금액</Text>
-            <Text style={styles.totalPrice}>{formatWon(totalPrice)}</Text>
-          </View>
-        )}
-        <Pressable
-          style={({ pressed }) => [
-            styles.purchaseBtn,
-            !selection && styles.purchaseBtnDisabled,
-            pressed && !!selection && styles.btnPressed,
-          ]}
-          onPress={handlePurchase}
-          disabled={isLoading || !selection}
-        >
-          <MaterialIcons name="fingerprint" size={22} color="#fff" />
-          <Text style={styles.purchaseBtnText}>
-            {isLoading ? "인증 중..." : "결제하기"}
-          </Text>
-        </Pressable>
-      </View>
+      {!isLoading && (
+        <View style={styles.bottom}>
+          {selectedAmount && (
+            <View style={styles.totalRow}>
+              <Text style={styles.totalLabel}>결제 금액</Text>
+              <Text style={styles.totalPrice}>{displayPrice}</Text>
+            </View>
+          )}
+          <Pressable
+            style={({ pressed }) => [
+              styles.purchaseBtn,
+              (!selectedAmount || isPurchasing) && styles.purchaseBtnDisabled,
+              pressed && !!selectedAmount && !isPurchasing && styles.btnPressed,
+            ]}
+            onPress={handlePurchase}
+            disabled={isPurchasing || !selectedAmount}
+          >
+            {isPurchasing ? (
+              <ActivityIndicator size="small" color="#fff" />
+            ) : (
+              <MaterialIcons name="shopping-cart" size={22} color="#fff" />
+            )}
+            <Text style={styles.purchaseBtnText}>
+              {isPurchasing ? "결제 진행 중..." : "결제하기"}
+            </Text>
+          </Pressable>
+        </View>
+      )}
     </SafeAreaView>
   );
 };
@@ -225,8 +221,24 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "#11181C",
   },
-  placeholder: {
-    width: 40,
+  restoreButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  restoreText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#007AFF",
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 16,
+  },
+  loadingText: {
+    fontSize: 15,
+    color: "#687076",
   },
   scroll: {
     flex: 1,
@@ -236,74 +248,21 @@ const styles = StyleSheet.create({
     paddingBottom: 32,
   },
 
-  /* Subscription Box */
-  subBox: {
-    backgroundColor: "#fff",
-    borderRadius: 16,
-    padding: 20,
-    borderWidth: 2,
-    borderColor: "#EEEFF0",
-    position: "relative",
-    overflow: "hidden",
-  },
-  selectedBox: {
-    borderColor: "#007AFF",
-    backgroundColor: "#F0F7FF",
-  },
-  subBadge: {
-    position: "absolute",
-    top: 0,
-    right: 0,
+  /* Balance */
+  balanceRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
-    backgroundColor: "#FF6B35",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderBottomLeftRadius: 12,
+    gap: 8,
+    marginBottom: 16,
+    paddingHorizontal: 4,
   },
-  subBadgeText: {
-    fontSize: 12,
-    fontWeight: "800",
-    color: "#fff",
-  },
-  subHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    marginBottom: 8,
-  },
-  subTitle: {
-    fontSize: 20,
-    fontWeight: "700",
-    color: "#11181C",
-  },
-  subDesc: {
-    fontSize: 14,
-    color: "#687076",
-    marginBottom: 14,
-  },
-  subPriceRow: {
-    flexDirection: "row",
-    alignItems: "baseline",
-  },
-  subPrice: {
-    fontSize: 26,
-    fontWeight: "800",
-    color: "#11181C",
-  },
-  subPeriod: {
+  balanceText: {
     fontSize: 15,
-    fontWeight: "500",
     color: "#687076",
   },
-  selectedText: {
+  balanceAmount: {
+    fontWeight: "800",
     color: "#007AFF",
-  },
-  checkBadge: {
-    position: "absolute",
-    top: 16,
-    left: 16,
   },
 
   /* Section */
@@ -311,12 +270,6 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontWeight: "700",
     color: "#11181C",
-    marginTop: 28,
-    marginBottom: 4,
-  },
-  sectionHint: {
-    fontSize: 13,
-    color: "#9BA1A6",
     marginBottom: 14,
   },
 
@@ -337,6 +290,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 4,
     position: "relative",
+  },
+  selectedBox: {
+    borderColor: "#007AFF",
+    backgroundColor: "#F0F7FF",
   },
   tokenCheck: {
     position: "absolute",
@@ -359,6 +316,29 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "#687076",
     marginTop: 2,
+  },
+  selectedText: {
+    color: "#007AFF",
+  },
+
+  /* Sandbox Notice */
+  sandboxNotice: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginTop: 24,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: "#FFF8F0",
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#FFE0B2",
+  },
+  sandboxText: {
+    flex: 1,
+    fontSize: 12,
+    color: "#E65100",
+    lineHeight: 18,
   },
 
   /* Bottom */

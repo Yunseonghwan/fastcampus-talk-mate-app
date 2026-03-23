@@ -5,9 +5,11 @@ import {
 } from "@react-navigation/native";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
+import { useEffect } from "react";
 import "react-native-reanimated";
 
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { initializeRevenueCat } from "@/hooks/use-revenue-cat";
 import { useSession } from "@/hooks/use-session";
 
 export const unstable_settings = {
@@ -17,6 +19,10 @@ export const unstable_settings = {
 export default function RootLayout() {
   const colorScheme = useColorScheme();
   useSession();
+
+  useEffect(() => {
+    initializeRevenueCat();
+  }, []);
 
   return (
     <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>

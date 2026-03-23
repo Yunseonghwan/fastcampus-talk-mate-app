@@ -17,6 +17,10 @@ type TokenState = PersistedTokenState & {
   useTokens: (amount: number) => boolean;
   subscribe: () => void;
   checkSubscription: () => boolean;
+  syncSubscription: (
+    isSubscribed: boolean,
+    expiresAt: number | null,
+  ) => void;
 };
 
 const secureStorage = {
@@ -66,6 +70,13 @@ export const useTokenStore = create<TokenState>()(
           return false;
         }
         return true;
+      },
+
+      syncSubscription: (
+        isSubscribed: boolean,
+        expiresAt: number | null,
+      ): void => {
+        set({ isSubscribed, subscriptionExpiresAt: expiresAt });
       },
     }),
     {

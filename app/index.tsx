@@ -53,7 +53,7 @@ const AuthScreen = () => {
               pressed && styles.buttonPressed,
               isLoading && styles.buttonDisabled,
             ]}
-            onPress={authenticate}
+            onPress={() => authenticate()}
             disabled={isLoading}
           >
             <MaterialIcons

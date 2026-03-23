@@ -65,10 +65,7 @@
       [
         "react-native-permissions",
         {
-          "iosPermissions": [
-            "Microphone",
-            "SpeechRecognition"
-          ]
+          "iosPermissions": ["Microphone", "SpeechRecognition"]
         }
       ],
       "expo-audio"
