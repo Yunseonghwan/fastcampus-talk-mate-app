@@ -16,6 +16,21 @@ import messaging from "@react-native-firebase/messaging";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { initializeRevenueCat } from "@/hooks/use-revenue-cat";
 import { useSession } from "@/hooks/use-session";
+import * as Sentry from '@sentry/react-native';
+
+Sentry.init({
+  dsn: 'https://f5f9cacf1412f833c9d27e9c9e76fd07@o4510887774257152.ingest.us.sentry.io/4510887822163968',
+
+  // Adds more context data to events (IP address, cookies, user, etc.)
+  // For more information, visit: https://docs.sentry.io/platforms/react-native/data-management/data-collected/
+  sendDefaultPii: true,
+
+  // Enable Logs
+  enableLogs: false,
+
+  // uncomment the line below to enable Spotlight (https://spotlightjs.com)
+  // spotlight: __DEV__,
+});
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -127,7 +142,7 @@ export const unstable_settings = {
   anchor: "(tabs)",
 };
 
-export default function RootLayout() {
+export default Sentry.wrap(function RootLayout() {
   const colorScheme = useColorScheme();
   useSession();
 
@@ -186,4 +201,4 @@ export default function RootLayout() {
       <StatusBar style="auto" />
     </ThemeProvider>
   );
-}
+});

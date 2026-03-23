@@ -16,7 +16,9 @@
         "NSFaceIDUsageDescription": "This app uses Face ID to authenticate users.",
         "NSMicrophoneUsageDescription": "AI와 대화하고 음성을 저장하기 위해 마이크 권한이 필요합니다.",
         "NSSpeechRecognitionUsageDescription": "음성 인식을 위해 말하기 권한이 필요합니다.",
-        "UIBackgroundModes": ["remote-notification"]
+        "UIBackgroundModes": [
+          "remote-notification"
+        ]
       }
     },
     "android": {
@@ -69,7 +71,10 @@
       [
         "react-native-permissions",
         {
-          "iosPermissions": ["Microphone", "SpeechRecognition"]
+          "iosPermissions": [
+            "Microphone",
+            "SpeechRecognition"
+          ]
         }
       ],
       "expo-audio",
@@ -79,6 +84,14 @@
         "expo-notifications",
         {
           "icon": "./assets/images/icon.png"
+        }
+      ],
+      [
+        "@sentry/react-native/expo",
+        {
+          "url": "https://sentry.io/",
+          "project": "react-native",
+          "organization": "no-zdu"
         }
       ]
     ],
