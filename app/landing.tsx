@@ -1,7 +1,7 @@
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { router } from "expo-router";
-import { useEffect, useState } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { useCallback, useEffect, useState } from "react";
+import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import MenuModal from "@/components/menu-modal";
@@ -10,9 +10,15 @@ import MicSection from "@/components/mic-section";
 import { useSession } from "@/hooks/use-session";
 import { useTokenStore } from "@/stores/token-store";
 
+const READ_ALOUD_COST = 5;
+const CONVERSATION_COST = 10;
+
 const LandingScreen = () => {
   const { isInitialized, hasValidSession } = useSession();
   const tokens = useTokenStore((state) => state.tokens);
+  const isSubscribed = useTokenStore((state) => state.isSubscribed);
+  const checkSubscription = useTokenStore((state) => state.checkSubscription);
+  const consumeTokens = useTokenStore((state) => state.useTokens);
   const [menuVisible, setMenuVisible] = useState(false);
 
   useEffect(() => {
@@ -21,12 +27,41 @@ const LandingScreen = () => {
     }
   }, [isInitialized, hasValidSession]);
 
+  useEffect(() => {
+    checkSubscription();
+  }, [checkSubscription]);
+
+  const navigateWithTokenCheck = useCallback(
+    (route: "/conversation" | "/read-aloud", cost: number) => {
+      const subscriptionActive = checkSubscription();
+
+      if (subscriptionActive) {
+        router.push(route);
+        return;
+      }
+
+      if (!consumeTokens(cost)) {
+        Alert.alert("토큰 부족", "토큰이 부족합니다. 토큰을 구매해주세요.", [
+          { text: "취소", style: "cancel" },
+          {
+            text: "구매하기",
+            onPress: () => router.push("/token-purchase"),
+          },
+        ]);
+        return;
+      }
+
+      router.push(route);
+    },
+    [checkSubscription, consumeTokens],
+  );
+
   const handleStartConversation = () => {
-    router.push("/conversation");
+    navigateWithTokenCheck("/conversation", CONVERSATION_COST);
   };
 
   const handleReadAloud = () => {
-    router.push("/read-aloud");
+    navigateWithTokenCheck("/read-aloud", READ_ALOUD_COST);
   };
 
   return (
@@ -69,7 +104,9 @@ const LandingScreen = () => {
           ]}
           onPress={handleReadAloud}
         >
-          <Text style={styles.outlineButtonText}>읽어주기(5토큰)</Text>
+          <Text style={styles.outlineButtonText}>
+            {isSubscribed ? "읽어주기" : "읽어주기(5토큰)"}
+          </Text>
         </Pressable>
         <Pressable
           style={({ pressed }) => [
@@ -78,7 +115,9 @@ const LandingScreen = () => {
           ]}
           onPress={handleStartConversation}
         >
-          <Text style={styles.primaryButtonText}>대화시작하기(10토큰)</Text>
+          <Text style={styles.primaryButtonText}>
+            {isSubscribed ? "대화시작하기" : "대화시작하기(10토큰)"}
+          </Text>
         </Pressable>
       </View>
     </SafeAreaView>
