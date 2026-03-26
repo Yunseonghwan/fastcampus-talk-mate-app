@@ -3,6 +3,7 @@ import {
   DefaultTheme,
   ThemeProvider,
 } from "@react-navigation/native";
+import CodePush from "@bravemobile/react-native-code-push";
 import * as Device from "expo-device";
 import * as Notifications from "expo-notifications";
 import { Stack } from "expo-router";
@@ -15,6 +16,7 @@ import messaging from "@react-native-firebase/messaging";
 
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useSession } from "@/hooks/use-session";
+import { codePushOptions, checkAndApplyUpdate } from "@/utils/codepush";
 import * as Sentry from '@sentry/react-native';
 
 Sentry.init({
@@ -141,7 +143,7 @@ export const unstable_settings = {
   anchor: "(tabs)",
 };
 
-export default Sentry.wrap(function RootLayout() {
+function RootLayout() {
   const colorScheme = useColorScheme();
   useSession();
 
@@ -149,6 +151,10 @@ export default Sentry.wrap(function RootLayout() {
     null,
   );
   const responseListener = useRef<Notifications.EventSubscription | null>(null);
+
+  useEffect(() => {
+    checkAndApplyUpdate();
+  }, []);
 
   useEffect(() => {
     registerForPushNotifications();
@@ -198,4 +204,6 @@ export default Sentry.wrap(function RootLayout() {
       <StatusBar style="auto" />
     </ThemeProvider>
   );
-});
+}
+
+export default CodePush(codePushOptions)(Sentry.wrap(RootLayout));
