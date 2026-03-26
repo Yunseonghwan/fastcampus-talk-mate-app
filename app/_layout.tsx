@@ -14,7 +14,6 @@ import "react-native-reanimated";
 import messaging from "@react-native-firebase/messaging";
 
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { initializeRevenueCat } from "@/hooks/use-revenue-cat";
 import { useSession } from "@/hooks/use-session";
 import * as Sentry from '@sentry/react-native';
 
@@ -152,7 +151,6 @@ export default Sentry.wrap(function RootLayout() {
   const responseListener = useRef<Notifications.EventSubscription | null>(null);
 
   useEffect(() => {
-    initializeRevenueCat();
     registerForPushNotifications();
 
     messaging().onTokenRefresh((newToken) => {
@@ -196,7 +194,6 @@ export default Sentry.wrap(function RootLayout() {
         <Stack.Screen name="conversation" options={{ headerShown: false }} />
         <Stack.Screen name="read-aloud" options={{ headerShown: false }} />
         <Stack.Screen name="chat-history" options={{ headerShown: false }} />
-        <Stack.Screen name="token-purchase" options={{ headerShown: false }} />
       </Stack>
       <StatusBar style="auto" />
     </ThemeProvider>

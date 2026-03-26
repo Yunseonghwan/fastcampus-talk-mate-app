@@ -41,13 +41,7 @@ const LandingScreen = () => {
       }
 
       if (!consumeTokens(cost)) {
-        Alert.alert("토큰 부족", "토큰이 부족합니다. 토큰을 구매해주세요.", [
-          { text: "취소", style: "cancel" },
-          {
-            text: "구매하기",
-            onPress: () => router.push("/token-purchase"),
-          },
-        ]);
+        Alert.alert("토큰 부족", "토큰이 부족합니다.");
         return;
       }
 

@@ -4,7 +4,6 @@ import { Linking, Modal, Pressable, StyleSheet, Text, View } from 'react-native'
 
 const MENU_ITEMS = [
   { label: '대화기록', icon: 'history' as const, route: '/chat-history' },
-  { label: '토큰구매', icon: 'shopping-cart' as const, route: '/token-purchase' },
   { label: '권한설정', icon: 'settings' as const, route: 'settings' },
 ] as const;
 
